@@ -2,6 +2,8 @@ package com.flamexander.rabbitmq.console.consumer;
 
 import com.rabbitmq.client.*;
 
+import java.util.Scanner;
+
 public class DoubleDirectReceiver {
     private static final String EXCHANGE_NAME = "DoubleDirect";
 
@@ -16,17 +18,35 @@ public class DoubleDirectReceiver {
         String queueName = channel.queueDeclare().getQueue();
         System.out.println("My queue name: " + queueName);
 
-        channel.queueBind(queueName, EXCHANGE_NAME, "php");
-        channel.queueBind(queueName, EXCHANGE_NAME, "java");
+        Scanner scanner = new Scanner(System.in);
+        String getMeQueueName = null;
 
-        System.out.println(" [*] Waiting for messages");
+        while (getMeQueueName == null) {
+
+            System.out.println("Get me queue name (format: 'set_topic <queue name>')");
+            String cmd = scanner.next();
+
+            if (cmd.equals("set_topic")) {
+                getMeQueueName = scanner.next();
+                if (getMeQueueName.trim().isEmpty()) {
+                    getMeQueueName = null;
+                    System.out.println("Not empty queue name!");
+                }
+            } else {
+                System.out.println("Try again - format: 'set_topic <queue name>'");
+            }
+        }
+
+        channel.queueBind(queueName, EXCHANGE_NAME, getMeQueueName);
+
+        System.out.println(" [*] Listen message for '" + getMeQueueName + "':");
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), "UTF-8");
-            System.out.println(" [x] Received '" + message + "'");
-            System.out.println(Thread.currentThread().getName());
+            System.out.println(" [x] New topic for you '" + message + "'");
         };
 
-        channel.basicConsume(queueName, true, deliverCallback, consumerTag -> { });
+        channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {
+        });
     }
 }
